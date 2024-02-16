@@ -7,7 +7,7 @@ import {
   FindingType,
   Label,
   EntityType,
-} from "forta-agent";
+} from "forta-bot";
 
 import { ZERO_ADDRESS, DEAD_ADDRESS, TRANSFER_EVENT } from "./constants";
 import { counter } from "./agent";

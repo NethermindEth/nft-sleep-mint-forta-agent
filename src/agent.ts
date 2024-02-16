@@ -1,14 +1,18 @@
 import {
+  getFortaChainId,
   Finding,
   HandleTransaction,
   TransactionEvent,
   HandleBlock,
   BlockEvent,
-  ethers,
   Initialize,
-  getEthersProvider,
-} from "forta-agent";
+  scanBase,
+  scanEthereum,
+  runHealthCheck,
+  ethers,
+} from "forta-bot";
 
+const provider = new ethers.JsonRpcProvider();
 import transferMismatch, { mints } from "./transfer.mismatch";
 import approveMismatch from "./approve.mismatch";
 import { PersistenceHelper } from "./persistence.helper";
@@ -31,21 +35,32 @@ export let counter: Record<string, number> = {
   sleepMint3Alerts: 0,
 };
 
-export const provideInitialize = (
-  provider: ethers.providers.Provider,
-  persistenceHelper: PersistenceHelper
-): Initialize => {
+export const provideInitialize = (persistenceHelper: PersistenceHelper): Initialize => {
   return async () => {
-    chainId = (await provider.getNetwork()).chainId.toString();
+    const chainIdValue = getFortaChainId();
+
+    if (chainIdValue !== undefined) {
+      chainId = chainIdValue.toString();
+      console.log("chain id is:", chainId);
+    } else {
+      console.log("chain id is undefined");
+      throw new Error("Chain ID is undefined");
+    }
+
     counter = await persistenceHelper.load(DB_KEY.concat("-", chainId));
   };
 };
 
 const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) => {
+  console.log("Handling transaction", txEvent.transaction.hash);
+
   let findings: Finding[] = [];
 
   findings = (
-    await Promise.all([transferMismatch.handleTransaction(txEvent), approveMismatch.handleTransaction(txEvent)])
+    await Promise.all([
+      transferMismatch.handleTransaction(txEvent, provider),
+      approveMismatch.handleTransaction(txEvent, provider),
+    ])
   ).flat();
 
   return findings;
@@ -83,8 +98,35 @@ export const provideHandleBlock =
     return [];
   };
 
+async function main() {
+  const initialize = provideInitialize(new PersistenceHelper(DATABASE_URL));
+  const handleBlock = provideHandleBlock(new PersistenceHelper(DATABASE_URL), mints);
+
+  await initialize();
+
+  scanBase({
+    rpcUrl: "https://base-mainnet.g.alchemy.com/v2",
+    rpcKeyId: "ff890297-bee3-41a6-b985-1e68cdc78f7c",
+    localRpcUrl: "8453",
+    handleTransaction,
+    handleBlock,
+  });
+
+  scanEthereum({
+    rpcUrl: "https://eth-mainnet.g.alchemy.com/v2",
+    rpcKeyId: "64286df1-4567-405a-a102-1122653022e4",
+    localRpcUrl: "1",
+    handleTransaction,
+    handleBlock,
+  });
+
+  runHealthCheck();
+}
+
+main();
+
 export default {
-  initialize: provideInitialize(getEthersProvider(), new PersistenceHelper(DATABASE_URL)),
+  initialize: provideInitialize(new PersistenceHelper(DATABASE_URL)),
   handleTransaction,
   handleBlock: provideHandleBlock(new PersistenceHelper(DATABASE_URL), mints),
   resetLastTimestamp: () => {

@@ -6,7 +6,7 @@ import {
   FindingType,
   Label,
   EntityType,
-} from "forta-agent";
+} from "forta-bot";
 
 import { APPROVE_EVENT, APPROVAL_FOR_ALL_EVENT, PERMIT_SIGS, TRANSFER_EVENT_TOPIC } from "./constants";
 import { counter } from "./agent";
