@@ -26,7 +26,6 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
     return findings;
   }
 
-  //console.log(approvals);
   for (let approve of approvals) {
     counter.nftApprovals += 1;
     // get the current owner of an NFT
