@@ -1,5 +1,5 @@
 import {
-  getFortaChainId,
+  getChainId,
   Finding,
   HandleTransaction,
   TransactionEvent,
@@ -37,7 +37,7 @@ export let counter: Record<string, number> = {
 
 export const provideInitialize = (persistenceHelper: PersistenceHelper): Initialize => {
   return async () => {
-    const chainIdValue = getFortaChainId();
+    const chainIdValue = getChainId();
 
     if (chainIdValue !== undefined) {
       chainId = chainIdValue.toString();
@@ -52,8 +52,6 @@ export const provideInitialize = (persistenceHelper: PersistenceHelper): Initial
 };
 
 const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) => {
-  console.log("Handling transaction", txEvent.transaction.hash);
-
   let findings: Finding[] = [];
 
   findings = (
@@ -123,7 +121,9 @@ async function main() {
   runHealthCheck();
 }
 
-main();
+if (require.main === module) {
+  main();
+}
 
 export default {
   initialize: provideInitialize(new PersistenceHelper(DATABASE_URL)),
