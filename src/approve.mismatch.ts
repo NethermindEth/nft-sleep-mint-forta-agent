@@ -81,6 +81,10 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
                 remove: false,
               }),
             ],
+            source: {
+              chains: [{ chainId: txEvent.network }],
+              transactions: [{ chainId: txEvent.network, hash: txEvent.hash }],
+            },
           })
         );
       }
