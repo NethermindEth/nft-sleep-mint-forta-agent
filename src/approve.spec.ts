@@ -104,6 +104,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent.network }],
+            transactions: [{ chainId: mockTxEvent.network, hash: mockTxEvent.hash }],
+          },
         }),
       ]);
 
@@ -150,6 +154,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent.network }],
+            transactions: [{ chainId: mockTxEvent.network, hash: mockTxEvent.hash }],
+          },
         }),
       ]);
 
