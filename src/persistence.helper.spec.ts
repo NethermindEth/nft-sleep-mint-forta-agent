@@ -128,6 +128,20 @@ describe("Persistence Helper test suite", () => {
     });
   });
 
+  it("should correctly load values from a local file if it exists", async () => {
+    const mockData = '{ "0x0": ["0x1", "0x2"] }';
+
+    writeFileSync(mockKey, mockData.toString());
+
+    const mockEnv = { LOCAL_NODE: 121 };
+    Object.assign(process.env, mockEnv);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    const fetchedValue = await persistenceHelper.load(mockKey);
+    expect(fetchedValue).toStrictEqual({ "0x0": ["0x1", "0x2"] });
+  });
+
   it("should fail to load an object from a local file if it doesn't exist, but return default counter", async () => {
     const mockEnv = { LOCAL_NODE: 121 };
     Object.assign(process.env, mockEnv);
