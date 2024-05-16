@@ -1,3 +1,5 @@
+import * as fortaBot from "forta-bot";
+
 import {
   FindingType,
   FindingSeverity,
@@ -7,7 +9,7 @@ import {
   Label,
   EntityType,
   ethers,
-} from "forta-agent";
+} from "forta-bot";
 import { MockEthersProvider } from "forta-agent-tools/lib/test";
 import approveMismatch from "./approve.mismatch";
 import { provideInitialize } from "./agent";
@@ -30,6 +32,7 @@ describe("NFT Sleep agent", () => {
   let handleTransaction: HandleTransaction;
   let initialize: Initialize;
   const mockProvider = new MockEthersProvider();
+  jest.spyOn(fortaBot, "getChainId").mockReturnValue(1);
 
   // store some addresses to use throughout tests
   let txnSender = "0x87F6cA7862feA6411de6c0aFc1b4b23DD802bf00".toLowerCase();
@@ -53,7 +56,7 @@ describe("NFT Sleep agent", () => {
 
   beforeEach(async () => {
     mockTxEvent.filterLog.mockReset();
-    initialize = provideInitialize(mockProvider as any, mockPersistenceHelper as any);
+    initialize = provideInitialize(mockPersistenceHelper as any);
     mockProvider.setNetwork(1);
     mockPersistenceHelper.load.mockReturnValueOnce(mockCounter);
     await initialize();
@@ -71,7 +74,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721ApproveEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       const mockAnomalyScore = mockCounter.sleepMint2Alerts / mockCounter.nftApprovals;
 
@@ -101,6 +104,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent.network }],
+            transactions: [{ chainId: mockTxEvent.network, hash: mockTxEvent.hash }],
+          },
         }),
       ]);
 
@@ -118,7 +125,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721ApproveAllEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
       const mockAnomalyScore = mockCounter.sleepMint2Alerts / mockCounter.nftApprovals;
 
       expect(findings).toStrictEqual([
@@ -147,6 +154,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent.network }],
+            transactions: [{ chainId: mockTxEvent.network, hash: mockTxEvent.hash }],
+          },
         }),
       ]);
 
@@ -165,7 +176,7 @@ describe("NFT Sleep agent", () => {
       mockTxEvent.from = famousArtist;
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721ApproveEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
 
@@ -194,7 +205,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721ApproveEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
 
@@ -213,11 +224,7 @@ describe("NFT Sleep agent", () => {
         logs: [
           {
             logIndex: 1,
-            topics: [
-              TRANSFER_EVENT_TOPIC,
-              ethers.utils.hexZeroPad(txnSender, 32),
-              ethers.utils.hexZeroPad(famousArtist, 32),
-            ],
+            topics: [TRANSFER_EVENT_TOPIC, ethers.zeroPadValue(txnSender, 32), ethers.zeroPadValue(famousArtist, 32)],
           },
         ],
       };
@@ -232,7 +239,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721ApproveEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
 

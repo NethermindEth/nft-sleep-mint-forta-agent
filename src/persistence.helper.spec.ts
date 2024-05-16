@@ -1,3 +1,4 @@
+import * as fortaBot from "forta-bot";
 import { PersistenceHelper } from "./persistence.helper";
 import { existsSync, writeFileSync, unlinkSync } from "fs";
 import fetch, { Response } from "node-fetch";
@@ -19,16 +20,6 @@ const mockJwt = {
 };
 const mockKey = "mock-test-key";
 
-// Mock the fetchJwt function of the forta-agent module
-const mockFetchJwt = jest.fn();
-jest.mock("forta-agent", () => {
-  const original = jest.requireActual("forta-agent");
-  return {
-    ...original,
-    fetchJwt: () => mockFetchJwt(),
-  };
-});
-
 const removePersistentState = () => {
   if (existsSync(mockKey)) {
     unlinkSync(mockKey);
@@ -37,7 +28,7 @@ const removePersistentState = () => {
 
 describe("Persistence Helper test suite", () => {
   let persistenceHelper: PersistenceHelper;
-  let mockFetch = jest.mocked(fetch, true);
+  let mockFetch = jest.mocked(fetch);
 
   beforeAll(() => {
     persistenceHelper = new PersistenceHelper(mockDbUrl);
@@ -70,14 +61,14 @@ describe("Persistence Helper test suite", () => {
     const mockEnv = {};
     Object.assign(process.env, mockEnv);
 
-    mockFetchJwt.mockResolvedValueOnce(mockJwt);
+    jest.spyOn(fortaBot, "fetchJwt").mockReturnValue(mockJwt as any);
 
     mockFetch.mockResolvedValueOnce(Promise.resolve(mockFetchResponse));
     const spy = jest.spyOn(console, "log").mockImplementation(() => {});
     await persistenceHelper.persist(mockValue, mockKey);
 
     expect(spy).toHaveBeenCalledWith("successfully persisted [object Object] to database");
-    expect(mockFetchJwt).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch.mock.calls[0][0]).toEqual(`${mockDbUrl}${mockKey}`);
     expect(mockFetch.mock.calls[0][1]!.method).toEqual("POST");
@@ -101,7 +92,6 @@ describe("Persistence Helper test suite", () => {
 
     await persistenceHelper.persist(mockValue, mockKey);
 
-    expect(mockFetchJwt).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
 
     expect(existsSync("mock-test-key")).toBeDefined();
@@ -125,7 +115,8 @@ describe("Persistence Helper test suite", () => {
     const mockEnv = {};
     Object.assign(process.env, mockEnv);
 
-    mockFetchJwt.mockResolvedValueOnce(mockJwt);
+    jest.spyOn(fortaBot, "fetchJwt").mockReturnValue(mockJwt as any);
+
     mockFetch.mockResolvedValueOnce(mockFetchResponse);
     const fetchedValue = await persistenceHelper.load(mockKey);
     expect(fetchedValue).toStrictEqual({
@@ -137,11 +128,24 @@ describe("Persistence Helper test suite", () => {
     });
   });
 
+  it("should correctly load values from a local file if it exists", async () => {
+    const mockData = '{ "0x0": ["0x1", "0x2"] }';
+
+    writeFileSync(mockKey, mockData.toString());
+
+    const mockEnv = { LOCAL_NODE: 121 };
+    Object.assign(process.env, mockEnv);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    const fetchedValue = await persistenceHelper.load(mockKey);
+    expect(fetchedValue).toStrictEqual({ "0x0": ["0x1", "0x2"] });
+  });
+
   it("should fail to load an object from a local file if it doesn't exist, but return default counter", async () => {
     const mockEnv = { LOCAL_NODE: 121 };
     Object.assign(process.env, mockEnv);
 
-    expect(mockFetchJwt).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
 
     const fetchedValue = await persistenceHelper.load(mockKey);

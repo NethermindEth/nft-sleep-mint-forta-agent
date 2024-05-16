@@ -1,3 +1,5 @@
+import * as fortaBot from "forta-bot";
+
 import {
   FindingType,
   FindingSeverity,
@@ -7,7 +9,7 @@ import {
   Label,
   EntityType,
   ethers,
-} from "forta-agent";
+} from "forta-bot";
 import { ZERO_ADDRESS, DEAD_ADDRESS } from "./constants";
 
 import transferMismatch from "./transfer.mismatch";
@@ -31,6 +33,7 @@ describe("NFT Sleep agent", () => {
   let handleTransaction: HandleTransaction;
   let initialize: Initialize;
   const mockProvider = new MockEthersProvider();
+  jest.spyOn(fortaBot, "getChainId").mockReturnValue(1);
 
   // store some addresses to use throughout tests
   let txnSender = "0x87F6cA7862feA6411de6c0aFc1b4b23DD802bf00".toLowerCase();
@@ -52,7 +55,7 @@ describe("NFT Sleep agent", () => {
 
   beforeEach(async () => {
     mockTxEvent.filterLog.mockReset();
-    initialize = provideInitialize(mockProvider as any, mockPersistenceHelper as any);
+    initialize = provideInitialize(mockPersistenceHelper as any);
     mockProvider.setNetwork(1);
     mockPersistenceHelper.load.mockReturnValueOnce(mockCounter);
     await initialize();
@@ -71,7 +74,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721TransferEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       const mockAnomalyScore = mockCounter.sleepMint1Alerts / mockCounter.nftTransfers;
 
@@ -101,6 +104,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent.network }],
+            transactions: [{ chainId: mockTxEvent.network, hash: mockTxEvent.hash }],
+          },
         }),
       ]);
 
@@ -120,7 +127,7 @@ describe("NFT Sleep agent", () => {
       mockTxEvent.from = famousArtist;
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721TransferEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
@@ -139,7 +146,7 @@ describe("NFT Sleep agent", () => {
       mockTxEvent.from = famousArtist;
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721TransferEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
@@ -158,7 +165,7 @@ describe("NFT Sleep agent", () => {
       mockTxEvent.from = famousArtist;
       mockTxEvent.filterLog.mockReturnValueOnce([mockERC721TransferEvent]);
 
-      const findings = await handleTransaction(mockTxEvent);
+      const findings = await handleTransaction(mockTxEvent, mockProvider as any);
 
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
@@ -183,7 +190,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent1.filterLog.mockReturnValueOnce([mockERC721TransferEvent]);
 
-      await handleTransaction(mockTxEvent1);
+      await handleTransaction(mockTxEvent1, mockProvider as any);
 
       const mockTxEvent2: any = {
         filterLog: jest.fn(),
@@ -203,7 +210,7 @@ describe("NFT Sleep agent", () => {
 
       mockTxEvent2.filterLog.mockReturnValueOnce([mockERC721TransferEvent2]);
 
-      const findings = await handleTransaction(mockTxEvent2);
+      const findings = await handleTransaction(mockTxEvent2, mockProvider as any);
 
       const mockAnomalyScore = mockCounter.sleepMint3Alerts / mockCounter.nftTransfers;
 
@@ -233,6 +240,10 @@ describe("NFT Sleep agent", () => {
               remove: false,
             }),
           ],
+          source: {
+            chains: [{ chainId: mockTxEvent2.network }],
+            transactions: [{ chainId: mockTxEvent2.network, hash: mockTxEvent2.hash }],
+          },
         }),
       ]);
 

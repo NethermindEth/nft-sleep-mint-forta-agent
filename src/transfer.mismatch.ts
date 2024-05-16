@@ -7,7 +7,7 @@ import {
   FindingType,
   Label,
   EntityType,
-} from "forta-agent";
+} from "forta-bot";
 
 import { ZERO_ADDRESS, DEAD_ADDRESS, TRANSFER_EVENT } from "./constants";
 import { counter } from "./agent";
@@ -78,6 +78,10 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
                   remove: false,
                 }),
               ],
+              source: {
+                chains: [{ chainId: txEvent.network }],
+                transactions: [{ chainId: txEvent.network, hash: txEvent.hash }],
+              },
             })
           );
         } else {
@@ -109,6 +113,10 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
                   remove: false,
                 }),
               ],
+              source: {
+                chains: [{ chainId: txEvent.network }],
+                transactions: [{ chainId: txEvent.network, hash: txEvent.hash }],
+              },
             })
           );
         }

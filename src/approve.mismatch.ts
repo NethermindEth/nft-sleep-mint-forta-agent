@@ -6,7 +6,7 @@ import {
   FindingType,
   Label,
   EntityType,
-} from "forta-agent";
+} from "forta-bot";
 
 import { APPROVE_EVENT, APPROVAL_FOR_ALL_EVENT, PERMIT_SIGS, TRANSFER_EVENT_TOPIC } from "./constants";
 import { counter } from "./agent";
@@ -26,7 +26,6 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
     return findings;
   }
 
-  //console.log(approvals);
   for (let approve of approvals) {
     counter.nftApprovals += 1;
     // get the current owner of an NFT
@@ -82,6 +81,10 @@ const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) =
                 remove: false,
               }),
             ],
+            source: {
+              chains: [{ chainId: txEvent.network }],
+              transactions: [{ chainId: txEvent.network, hash: txEvent.hash }],
+            },
           })
         );
       }

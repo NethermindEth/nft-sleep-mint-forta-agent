@@ -1,5 +1,7 @@
-import { HandleBlock, Initialize } from "forta-agent";
-import { MockEthersProvider, TestBlockEvent } from "forta-agent-tools/lib/test";
+import * as fortaBot from "forta-bot";
+import { HandleBlock, Initialize } from "forta-bot";
+import { MockEthersProvider } from "forta-agent-tools/lib/test";
+import { TestBlockEvent } from "./testBlockEvent";
 import { provideHandleBlock, provideInitialize } from "./agent";
 import agent from "./agent";
 
@@ -24,10 +26,11 @@ describe("Block handler test suite", () => {
   let initialize: Initialize;
   let handleBlock: HandleBlock;
   const mockProvider = new MockEthersProvider();
+  jest.spyOn(fortaBot, "getChainId").mockReturnValue(1);
 
   beforeEach(async () => {
     agent.resetLastTimestamp();
-    initialize = provideInitialize(mockProvider as any, mockPersistenceHelper as any);
+    initialize = provideInitialize(mockPersistenceHelper as any);
     mockProvider.setNetwork(1);
     mockPersistenceHelper.load.mockReturnValueOnce(mockCounter);
     await initialize();
@@ -41,7 +44,7 @@ describe("Block handler test suite", () => {
   it("should not clear the mints record if the time period has not passed", async () => {
     const mockBlockEvent: TestBlockEvent = new TestBlockEvent().setTimestamp(1010);
 
-    await handleBlock(mockBlockEvent);
+    await handleBlock(mockBlockEvent, mockProvider as any);
 
     expect(mockMints).toStrictEqual({
       "0x87f6ca7862fea6411de6c0afc1b4b23dd802bf00": [["0x23414f4f9cb421b952c9050f961801bb2c8b8d58", "1", 1000]],
@@ -58,7 +61,7 @@ describe("Block handler test suite", () => {
     };
     handleBlock = provideHandleBlock(mockPersistenceHelper as any, mockMints);
 
-    await handleBlock(mockBlockEvent);
+    await handleBlock(mockBlockEvent, mockProvider as any);
     expect(mockMints).toStrictEqual({
       "0x87f6ca7862fea6411de6c0afc1b4b23dd802bf00": [
         ["0x23414f4f9cb421b952c9050f961801bb2c8b8d58", "132532", 99999991009],
@@ -73,14 +76,14 @@ describe("Block handler test suite", () => {
       "0x87f6ca7862fea6411de6c0afc1b4b23dd802bf00": [["0x23414f4f9cb421b952c9050f961801bb2c8b8d58", "1", 1000]],
     });
 
-    await handleBlock(mockBlockEvent);
+    await handleBlock(mockBlockEvent, mockProvider as any);
     expect(mockMints).toStrictEqual({});
   });
 
   it("should persist the value in a block evenly divisible by 240", async () => {
     const mockBlockEvent: TestBlockEvent = new TestBlockEvent().setNumber(720);
 
-    await handleBlock(mockBlockEvent);
+    await handleBlock(mockBlockEvent, mockProvider as any);
 
     expect(mockPersistenceHelper.persist).toHaveBeenCalledTimes(1);
   });
@@ -88,7 +91,7 @@ describe("Block handler test suite", () => {
   it("should not persist values because block is not evenly divisible by 240", async () => {
     const mockBlockEvent: TestBlockEvent = new TestBlockEvent().setNumber(600);
 
-    await handleBlock(mockBlockEvent);
+    await handleBlock(mockBlockEvent, mockProvider as any);
 
     expect(mockPersistenceHelper.persist).toHaveBeenCalledTimes(0);
   });
